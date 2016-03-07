@@ -62,4 +62,8 @@ Network.prototype.handle = function(message, callback) {
     }, null);
 };
 
+Network.prototype.close = function() {
+    this.peercloud.close();
+}
+
 module.exports = Network;
