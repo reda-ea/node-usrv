@@ -5,8 +5,9 @@ var peercloud = require('peercloud');
 var $service = require('./service');
 var $filter = require('./filter');
 
-var Network = function(client, peers, options) {
-    peercloud(_.assign(_.clone(options), {
+var Network = function(client, peers, options, cb) {
+    var self = this;
+    peercloud(_.assign(_.clone(options || {}), {
         peers: peers,
         data: {
             services: client.services.map(function(service) {
@@ -25,12 +26,13 @@ var Network = function(client, peers, options) {
         }
     }), function(err, client) {
         if(err)
-            throw {
+            return cb({
                 code: 'NETWORKERROR',
-                message: 'Unable to connect to peer cloud'
-            };
-        this.peercloud = client;
-        client.network = this;
+                message: 'Unable to connect to peer cloud',
+                cause: err
+            });
+        self.peercloud = client;
+        cb(null, client);
     });
 };
 
@@ -60,4 +62,4 @@ Network.prototype.handle = function(message, callback) {
     }, null);
 };
 
-
+module.exports = Network;
