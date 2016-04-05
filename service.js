@@ -1,8 +1,8 @@
 
 // method: function(message, callback(err, resp))
-var Service = function(method) {
+var Service = function(method, filters) {
     this.method = method;
-    this.filters = [];
+    this.filters = filters || [];
 };
 
 Service.prototype.check = function(message) {
