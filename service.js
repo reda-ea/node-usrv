@@ -15,7 +15,7 @@ Service.prototype.check = function(message) {
 
 // finds a service capable of handling the message
 Service.find = function(services, message) {
-    return _.find(_.shuffle(this.services), function(s) {
+    return _.find(_.shuffle(services), function(s) {
         return s.check(message);
     });
 };
