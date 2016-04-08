@@ -4,25 +4,49 @@ var peercloud = require('peercloud');
 
 var $service = require('./service');
 var $filter = require('./filter');
+var $client = require('./client');
 
-var Network = function(client, peers, options, cb) {
+var Network = function(services) {
+    this.data = {
+        services: services.map(function(service) {
+            return {
+                filters: service.filters.map(function(filter) {
+                    return {
+                        type: filter.type,
+                        data: filter.data
+                    };
+                })
+            };
+        })
+    };
+    this.onrequest = function(req, cb) {
+        $client.prototype.handle.call({
+            services: services
+        }, req, cb);
+    };
+    this.peers = function() {
+        return [];
+    };
+};
+
+// creates a peercloud network, options.data will be replaced
+Network.prototype.connect = function(options, cb) {
     var self = this;
     peercloud(_.assign(_.clone(options || {}), {
-        peers: peers,
-        data: {
-            services: client.services.map(function(service) {
-                return {
-                    filters: service.filters.map(function(filter) {
-                        return {
-                            type: filter.type,
-                            data: filter.data
-                        };
-                    })
-                };
-            })
-        },
+        data: self.data,
         onmessage: function(peer, body, reply) {
-            client.handle(body, reply, true);
+            if(typeof body.request != 'object')
+                return reply({
+                    code: 'NOREQUEST',
+                    message: 'No request provided - not a service call'
+                });
+            self.onrequest(body.request, function(err, body) {
+                if(err)
+                    return reply(err);
+                reply(null, {
+                    response: body
+                });
+            });
         }
     }), function(err, client) {
         if(err)
@@ -31,16 +55,32 @@ var Network = function(client, peers, options, cb) {
                 message: 'Unable to connect to peer cloud',
                 cause: err
             });
-        self.peercloud = client;
-        cb(null, client);
+        self.peers = function() {
+            return client.peers();
+        };
+        self.close = function() {
+            return client.close();
+        };
+        cb(null, self);
     });
 };
 
 Network.prototype.services = function() {
-    return _.shuffle(this.peercloud.peers().reduce(function(services, peer) {
+    return _.shuffle(this.peers().reduce(function(services, peer) {
         return services.concat(peer.data.services.map(function(service) {
             return _.extend(new $service(function(message, callback) {
-                peer.send(message, callback);
+                peer.send({
+                    request: message
+                }, function(err, body) {
+                    if(err)
+                        return callback(err);
+                    if(typeof body.response != 'object')
+                        return callback({
+                            code: 'NORESPONSE',
+                            message: 'No response provided - not a service reply'
+                        });
+                    callback(null, body.response);
+                });
             }), {
                 filters: service.filters.map(function(filter) {
                     return new $filter(filter.type, filter.data);
@@ -51,19 +91,9 @@ Network.prototype.services = function() {
 };
 
 Network.prototype.handle = function(message, callback) {
-    var service = _.find(this.services(), function(s) {
-        return s.check(message);
-    });
-    if(service)
-        return service.method(message, callback);
-    callback({
-        code: 'NORSERVICE',
-        message: 'No service on network is able to handle this message'
-    }, null);
+    $client.prototype.handle.call({
+        services: this.services()
+    }, message, callback);
 };
-
-Network.prototype.close = function() {
-    this.peercloud.close();
-}
 
 module.exports = Network;

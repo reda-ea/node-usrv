@@ -1,8 +1,10 @@
 
 var _ = require('lodash');
 
-var Client = function() {
-    this.services = [];
+var $service = require('./service');
+
+var Client = function(services) {
+    this.services = services || [];
     this.network = null;
 };
 
@@ -15,18 +17,23 @@ Client.prototype.provide = function(service) {
     this.services.push(service);
 };
 
-Client.prototype.handle = function(message, callback, localOnly) {
-    var service = _.find(_.shuffle(this.services), function(s) {
-        return s.check(message);
-    });
+Client.prototype.handle = function(message, callback) {
+    var service = $service.find(this.services, message);
     if(service)
         return service.method(message, callback);
-    if(!localOnly && this.network)
+    if(this.network)
         return this.network.handle(message, callback);
     callback({
         code: 'NOSERVICE',
         message: 'No service is able to handle this message'
     }, null);
+};
+
+// convenience: builds and binds a peer cloud
+Client.prototype.connect = function(options, callback) {
+    var $network = require('./network');
+    this.network = new $network(this.services);
+    this.network.connect(options, callback);
 };
 
 module.exports = Client;

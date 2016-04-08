@@ -4,7 +4,6 @@ var _ = require('lodash');
 var $filter = require('./filter');
 var $service = require('./service');
 var $client = require('./client');
-var $network = require('./network');
 
 module.exports = function() {
     'use strict';
@@ -46,7 +45,7 @@ module.exports = function() {
         }
         if(typeof callback != 'function')
             callback = _.noop;
-        client.network = new $network(client, peers, {port: port}, function(err) {
+        client.connect({peers: peers, port: port}, function(err) {
             if(err)
                 return callback(err, null);
             delete self.provide;
