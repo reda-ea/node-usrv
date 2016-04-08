@@ -18,11 +18,13 @@ module.exports = function() {
         if(typeof service == 'function')
             specs = {
                 method: service,
-                filters: [{
+                filters: []
+            };
+            if(type)
+                specs.filters.push({
                     type: type,
                     data: filter
-                }]
-            };
+                });
         client.services.push(_.extend(new $service(_.bind(specs.method, self)), {
             filters: specs.filters.map(function(f) {
                 return new $filter(f.type, f.data);
