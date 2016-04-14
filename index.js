@@ -49,12 +49,12 @@ module.exports = function() {
             callback = _.noop;
         client.connect({peers: peers, port: port}, function(err) {
             if(err)
-                return callback(err, null);
+                return callback.call(self, err, null);
             delete self.provide;
             delete self.connect;
             self.send = _send;
             self.disconnect = _disconnect;
-            return callback(null, self);
+            return callback.call(self, null, self);
         });
         return self;
     };
