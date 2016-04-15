@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/reda-ea/node-usrv#readme",
   "dependencies": {
+    "ajv": "^3.8.10",
     "lodash": "^4.5.1",
     "peercloud": "^0.1.3"
   }
